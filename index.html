@@ -196,7 +196,9 @@
     </div>
 
     <script>
-        // แก้ไขบรรทัดล่างนี้ให้เป็นลิงก์ Web App URL ใหม่ของคุณ
+        // ==========================================
+        // ⚠️ นำ URL Web App อันใหม่มาใส่ตรงนี้ ⚠️
+        // ==========================================
         const API_URL = 'https://script.google.com/macros/s/AKfycbxTaV4xQdC2cXj7hyJPXx0oN3gaFjVr9_Rnw3fmvnFuXMP2vb_O9g8aR9NMtHGocyUEeg/exec';
         
         let currentData = null;
@@ -220,7 +222,6 @@
             try {
                 const response = await fetch(API_URL, { 
                     method: 'POST', 
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'getSettings' }) 
                 });
                 const data = await response.json();
@@ -250,7 +251,6 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'searchCustomer', idCard: idCard })
                 });
                 const data = await response.json();
@@ -332,7 +332,6 @@
                 try {
                     const response = await fetch(API_URL, {
                         method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({
                             action: 'submitPayment',
                             idCard: currentData.idCard,
@@ -369,6 +368,7 @@
             }
         }
 
+        // ระบบล็อกอินแก้ไขการจัดการ Error กรณีโดนบล็อก CORS ให้แจ้งเตือนสาเหตุชัดเจน
         async function showAdminLogin() {
             const password = prompt('กรุณากรอกรหัสแอดมิน');
             if (!password) return;
@@ -377,28 +377,34 @@
             try {
                 const response = await fetch(API_URL, { 
                     method: 'POST', 
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'adminLogin', password: password.trim() }) 
                 });
                 
-                const data = await response.json();
+                const textResponse = await response.text();
                 hideLoading();
                 
-                if (data.status === 'success') {
-                    document.getElementById('set-banner').value = globalSettings.banner || '';
-                    document.getElementById('set-bank').value = globalSettings.bankQr || '';
-                    document.getElementById('set-true').value = globalSettings.trueQr || '';
-                    document.getElementById('set-email').value = globalSettings.adminEmail || '';
-                    document.getElementById('set-line').value = globalSettings.line || '';
-                    document.getElementById('set-fb').value = globalSettings.fb || '';
+                try {
+                    const data = JSON.parse(textResponse);
                     
-                    document.getElementById('adminPanel').classList.remove('hidden');
-                } else {
-                    alert('รหัสผ่านไม่ถูกต้องค่ะ');
+                    if (data.status === 'success') {
+                        document.getElementById('set-banner').value = globalSettings.banner || '';
+                        document.getElementById('set-bank').value = globalSettings.bankQr || '';
+                        document.getElementById('set-true').value = globalSettings.trueQr || '';
+                        document.getElementById('set-email').value = globalSettings.adminEmail || '';
+                        document.getElementById('set-line').value = globalSettings.line || '';
+                        document.getElementById('set-fb').value = globalSettings.fb || '';
+                        
+                        document.getElementById('adminPanel').classList.remove('hidden');
+                    } else {
+                        alert('รหัสผ่านไม่ถูกต้องค่ะ');
+                    }
+                } catch(parseError) {
+                    alert('เซิร์ฟเวอร์ส่งข้อมูลกลับมาผิดปกติ โปรดเช็คลิงก์ API URL หรือสิทธิ์การ Deploy ให้เป็น Anyone \n\nข้อมูลที่ได้รับ: ' + textResponse.substring(0, 50) + '...');
                 }
+                
             } catch(error) {
                 hideLoading();
-                alert('การเชื่อมต่อล้มเหลว โปรดตรวจสอบลิงก์ API หรือลองใหม่อีกครั้ง');
+                alert('การเชื่อมต่อล้มเหลว: ' + error.message + '\n\nโปรดตรวจสอบว่าลิงก์ API_URL ถูกต้องหรือไม่ และสิทธิ์การ Deploy เป็น "Anyone" หรือไม่');
             }
         }
 
@@ -416,7 +422,6 @@
             try {
                 await fetch(API_URL, { 
                     method: 'POST', 
-                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'updateSettings', settings: newSettings }) 
                 });
                 alert('บันทึกการตั้งค่าเรียบร้อยแล้วค่ะ');
