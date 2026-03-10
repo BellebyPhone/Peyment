@@ -28,24 +28,16 @@
         .card-shadow { box-shadow: 0 10px 25px -5px rgba(249, 168, 212, 0.2); border: 1px solid #fce7f3; }
         .input-box { width: 100%; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 2px solid #fce7f3; background: white; transition: all 0.3s; }
         .input-box:focus { outline: none; border-color: #f472b6; }
-        
-        /* หน้าจอโหลดข้อมูล */
-        #loading {
-            position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 9999;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
-        }
-        .spinner {
-            border: 4px solid #fce7f3; border-top: 4px solid #f472b6;
-            border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;
-        }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="min-h-screen flex flex-col items-center py-8 px-4 relative">
 
-    <div id="loading" class="hidden">
-        <div class="spinner mb-4"></div>
-        <p class="text-pastel font-medium"><i class="fa-solid fa-spinner mr-2"></i>กำลังประมวลผล...</p>
+    <div id="loading" class="fixed inset-0 bg-white/80 backdrop-blur-md z-[9999] hidden flex-col justify-center items-center">
+        <div class="relative flex justify-center items-center mb-4 w-20 h-20">
+            <div class="absolute inset-0 border-4 border-pink-100 border-t-pink-400 rounded-full animate-spin"></div>
+            <img src="https://img2.pic.in.th/att.MmrKvFKgemFA7J2UPcHwOBCl5kFiFhCZtkK3XUjPQq0.jpeg" alt="Logo" class="w-12 h-12 rounded-full object-cover shadow-sm">
+        </div>
+        <p class="text-pink-500 font-medium tracking-wide animate-pulse">กำลังดำเนินการ... <i class="fa-solid fa-heart text-pink-400"></i></p>
     </div>
 
     <div class="max-w-md w-full">
@@ -215,8 +207,17 @@
         // โหลดข้อมูลการตั้งค่าตอนเปิดเว็บทันที
         window.onload = loadSettings;
 
-        function showLoading() { document.getElementById('loading').classList.remove('hidden'); }
-        function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
+        // แก้ไขฟังก์ชันการแสดง/ซ่อนหน้าโหลด ไม่ให้เกิดปัญหา CSS ตีกัน
+        function showLoading() { 
+            const loader = document.getElementById('loading');
+            loader.classList.remove('hidden');
+            loader.classList.add('flex');
+        }
+        function hideLoading() { 
+            const loader = document.getElementById('loading');
+            loader.classList.remove('flex');
+            loader.classList.add('hidden');
+        }
 
         // ฟังก์ชันดึงรูปแบนเนอร์ / QR / โซเชียล จาก Sheet
         async function loadSettings() {
@@ -273,7 +274,7 @@
                     alert(data.message);
                 }
             } catch(error) {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ โปรดลองใหม่อีกครั้ง');
             }
             hideLoading();
         }
@@ -288,7 +289,6 @@
 
         // เปิดหน้าต่างสำหรับแนบสลิป
         function openPaymentModal() {
-            // เช็คเงื่อนไข: หากไม่มีประวัติโอนค่าดาวน์ บังคับเป็น "ค่าดาวน์"
             const isFirstTime = !currentData.isDownPaid;
             const payType = isFirstTime ? 'ชำระค่าดาวน์ (ครั้งแรก)' : 'ชำระค่างวด';
             const payAmount = isFirstTime ? currentData.downAmount : currentData.cycleAmount;
@@ -300,21 +300,17 @@
             actualAmountInput.value = payAmount;
             
             if(isFirstTime) {
-                // ครั้งแรก ล็อคยอด ห้ามจ่ายเกินหรือขาด
                 actualAmountInput.readOnly = true; 
                 actualAmountInput.classList.add('bg-gray-100');
             } else {
-                // ครั้งต่อไป จ่ายล่วงหน้าได้ แก้ไขตัวเลขได้
                 actualAmountInput.readOnly = false; 
                 actualAmountInput.classList.remove('bg-gray-100');
             }
 
-            // ใส่วันที่และเวลาปัจจุบันอัตโนมัติ
             const now = new Date();
             document.getElementById('input-date').value = now.toISOString().split('T')[0];
             document.getElementById('input-time').value = now.toTimeString().substring(0,5);
             
-            // ล้างข้อมูลไฟล์เดิม
             document.getElementById('input-file').value = '';
             document.getElementById('file-label').innerText = 'กดเพื่อแนบสลิป';
 
@@ -369,7 +365,7 @@
                 }
                 hideLoading();
             };
-            reader.readAsDataURL(file); // แปลงไฟล์ภาพเป็น Base64
+            reader.readAsDataURL(file); 
         }
 
         // แสดงชื่อไฟล์เมื่อกดเลือกรูปสลิป
@@ -395,7 +391,6 @@
                 hideLoading();
                 
                 if (data.status === 'success') {
-                    // กรอกข้อมูลเดิมลงในช่องให้แอดมินแก้ไขง่ายขึ้น
                     document.getElementById('set-banner').value = globalSettings.banner || '';
                     document.getElementById('set-bank').value = globalSettings.bankQr || '';
                     document.getElementById('set-true').value = globalSettings.trueQr || '';
@@ -431,7 +426,7 @@
                     body: JSON.stringify({ action: 'updateSettings', settings: newSettings }) 
                 });
                 alert('บันทึกการตั้งค่าเรียบร้อยแล้วค่ะ');
-                location.reload(); // รีเฟรชหน้าเว็บเพื่อให้การตั้งค่าใหม่ทำงาน
+                location.reload();
             } catch(error) {
                 alert('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
                 hideLoading();
