@@ -196,34 +196,31 @@
     </div>
 
     <script>
-        // ==========================================
-        // นำ URL Web App ของคุณมาใส่ที่นี่
-        // ==========================================
+        // แก้ไขบรรทัดล่างนี้ให้เป็นลิงก์ Web App URL ใหม่ของคุณ
         const API_URL = 'https://script.google.com/macros/s/AKfycbxTaV4xQdC2cXj7hyJPXx0oN3gaFjVr9_Rnw3fmvnFuXMP2vb_O9g8aR9NMtHGocyUEeg/exec';
         
         let currentData = null;
         let globalSettings = {};
 
-        // โหลดข้อมูลการตั้งค่าตอนเปิดเว็บทันที
         window.onload = loadSettings;
 
-        // แก้ไขฟังก์ชันการแสดง/ซ่อนหน้าโหลด ไม่ให้เกิดปัญหา CSS ตีกัน
         function showLoading() { 
             const loader = document.getElementById('loading');
             loader.classList.remove('hidden');
             loader.classList.add('flex');
         }
+        
         function hideLoading() { 
             const loader = document.getElementById('loading');
             loader.classList.remove('flex');
             loader.classList.add('hidden');
         }
 
-        // ฟังก์ชันดึงรูปแบนเนอร์ / QR / โซเชียล จาก Sheet
         async function loadSettings() {
             try {
                 const response = await fetch(API_URL, { 
                     method: 'POST', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'getSettings' }) 
                 });
                 const data = await response.json();
@@ -231,7 +228,6 @@
                 if (data.status === 'success') {
                     globalSettings = data.settings;
                     
-                    // อัปเดต UI หน้าเว็บตามการตั้งค่าที่ดึงมา
                     if(data.settings.banner) {
                         document.getElementById('main-banner').src = data.settings.banner;
                         document.getElementById('banner-container').classList.remove('hidden');
@@ -246,7 +242,6 @@
             }
         }
 
-        // ฟังก์ชันค้นหาประวัติลูกค้า
         async function searchCustomer() {
             const idCard = document.getElementById('searchId').value.trim();
             if(!idCard) return alert('กรุณากรอกรหัสบัตรประชาชน 13 หลัก');
@@ -255,6 +250,7 @@
             try {
                 const response = await fetch(API_URL, {
                     method: 'POST',
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'searchCustomer', idCard: idCard })
                 });
                 const data = await response.json();
@@ -279,7 +275,6 @@
             hideLoading();
         }
 
-        // รีเซ็ตหน้าจอกลับไปหน้าค้นหา
         function resetView() {
             currentData = null;
             document.getElementById('searchId').value = '';
@@ -287,7 +282,6 @@
             document.getElementById('search-section').classList.remove('hidden');
         }
 
-        // เปิดหน้าต่างสำหรับแนบสลิป
         function openPaymentModal() {
             const isFirstTime = !currentData.isDownPaid;
             const payType = isFirstTime ? 'ชำระค่าดาวน์ (ครั้งแรก)' : 'ชำระค่างวด';
@@ -317,7 +311,6 @@
             document.getElementById('payModal').classList.remove('hidden');
         }
 
-        // ยืนยันการโอนเงินและอัปโหลดข้อมูล
         async function confirmPayment() {
             const fileInput = document.getElementById('input-file');
             const date = document.getElementById('input-date').value;
@@ -339,6 +332,7 @@
                 try {
                     const response = await fetch(API_URL, {
                         method: 'POST',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         body: JSON.stringify({
                             action: 'submitPayment',
                             idCard: currentData.idCard,
@@ -368,7 +362,6 @@
             reader.readAsDataURL(file); 
         }
 
-        // แสดงชื่อไฟล์เมื่อกดเลือกรูปสลิป
         function updateFileName() {
             const fileInput = document.getElementById('input-file');
             if (fileInput.files.length > 0) {
@@ -376,7 +369,6 @@
             }
         }
 
-        // ล็อกอินเข้าระบบหลังบ้านของแอดมิน
         async function showAdminLogin() {
             const password = prompt('กรุณากรอกรหัสแอดมิน');
             if (!password) return;
@@ -385,8 +377,10 @@
             try {
                 const response = await fetch(API_URL, { 
                     method: 'POST', 
-                    body: JSON.stringify({ action: 'adminLogin', password: password }) 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                    body: JSON.stringify({ action: 'adminLogin', password: password.trim() }) 
                 });
+                
                 const data = await response.json();
                 hideLoading();
                 
@@ -404,11 +398,10 @@
                 }
             } catch(error) {
                 hideLoading();
-                alert('การเชื่อมต่อล้มเหลว');
+                alert('การเชื่อมต่อล้มเหลว โปรดตรวจสอบลิงก์ API หรือลองใหม่อีกครั้ง');
             }
         }
 
-        // บันทึกการตั้งค่าลง Google Sheet
         async function saveSettings() {
             showLoading();
             const newSettings = {
@@ -423,6 +416,7 @@
             try {
                 await fetch(API_URL, { 
                     method: 'POST', 
+                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({ action: 'updateSettings', settings: newSettings }) 
                 });
                 alert('บันทึกการตั้งค่าเรียบร้อยแล้วค่ะ');
@@ -433,7 +427,6 @@
             }
         }
 
-        // ฟังก์ชันปิด Modal ทั่วไป
         function closeModal(modalId) { 
             document.getElementById(modalId).classList.add('hidden'); 
         }
