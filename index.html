@@ -197,9 +197,9 @@
 
     <script>
         // ==========================================
-        // ⚠️ นำ URL Web App อันใหม่มาใส่ตรงนี้ ⚠️
+        // ⚠️ นำ URL Web App อันใหม่ของคุณมาใส่ตรงนี้ ⚠️
         // ==========================================
-        const API_URL = 'https://script.google.com/macros/s/AKfycbyJgOYOjF2TJBHgS-9bRq_4y9UW_rQc74mY1ibJlrlMTxDOOO4uWA4YcMlDI8IXaIfZew/exec';
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxTaV4xQdC2cXj7hyJPXx0oN3gaFjVr9_Rnw3fmvnFuXMP2vb_O9g8aR9NMtHGocyUEeg/exec';
         
         let currentData = null;
         let globalSettings = {};
@@ -218,17 +218,27 @@
             loader.classList.add('hidden');
         }
 
+        // ฟังก์ชันกลางสำหรับเรียก API ข้ามโดเมนและแก้บัค CORS
+        async function callAPI(payload) {
+            const response = await fetch(API_URL, { 
+                method: 'POST', 
+                redirect: 'follow', 
+                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                body: JSON.stringify(payload) 
+            });
+            const textResponse = await response.text();
+            try {
+                return JSON.parse(textResponse);
+            } catch (error) {
+                throw new Error("เซิร์ฟเวอร์ตอบกลับผิดปกติ กรุณาเช็คการตั้งค่า Deploy เป็น Anyone หรือไม่ \n\n" + textResponse.substring(0, 100));
+            }
+        }
+
         async function loadSettings() {
             try {
-                const response = await fetch(API_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ action: 'getSettings' }) 
-                });
-                const data = await response.json();
-                
+                const data = await callAPI({ action: 'getSettings' });
                 if (data.status === 'success') {
                     globalSettings = data.settings;
-                    
                     if(data.settings.banner) {
                         document.getElementById('main-banner').src = data.settings.banner;
                         document.getElementById('banner-container').classList.remove('hidden');
@@ -239,7 +249,7 @@
                     if(data.settings.fb) document.getElementById('link-fb').href = data.settings.fb;
                 }
             } catch(error) { 
-                console.error("ไม่สามารถโหลดการตั้งค่าได้: ", error); 
+                console.error("ไม่สามารถโหลดการตั้งค่าได้:", error); 
             }
         }
 
@@ -249,11 +259,7 @@
             
             showLoading();
             try {
-                const response = await fetch(API_URL, {
-                    method: 'POST',
-                    body: JSON.stringify({ action: 'searchCustomer', idCard: idCard })
-                });
-                const data = await response.json();
+                const data = await callAPI({ action: 'searchCustomer', idCard: idCard });
                 
                 if(data.status === 'success') {
                     currentData = data.data;
@@ -270,7 +276,7 @@
                     alert(data.message);
                 }
             } catch(error) {
-                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์ โปรดลองใหม่อีกครั้ง');
+                alert('การเชื่อมต่อล้มเหลว: ' + error.message);
             }
             hideLoading();
         }
@@ -330,31 +336,27 @@
                 const isFirstTime = !currentData.isDownPaid;
                 
                 try {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        body: JSON.stringify({
-                            action: 'submitPayment',
-                            idCard: currentData.idCard,
-                            name: currentData.name,
-                            amount: actualAmount,
-                            type: isFirstTime ? 'ค่าดาวน์' : 'ค่างวด',
-                            date: date,
-                            time: time,
-                            fileData: base64Data,
-                            fileName: currentData.idCard + "_" + Date.now() + ".jpg"
-                        })
+                    const data = await callAPI({
+                        action: 'submitPayment',
+                        idCard: currentData.idCard,
+                        name: currentData.name,
+                        amount: actualAmount,
+                        type: isFirstTime ? 'ค่าดาวน์' : 'ค่างวด',
+                        date: date,
+                        time: time,
+                        fileData: base64Data,
+                        fileName: currentData.idCard + "_" + Date.now() + ".jpg"
                     });
-                    const result = await response.json();
                     
-                    if(result.status === 'success') {
+                    if(data.status === 'success') {
                         alert('ส่งยอดสำเร็จแล้วค่ะ ระบบกำลังแจ้งเตือนไปยังแอดมิน');
                         closeModal('payModal');
                         resetView();
                     } else {
-                        alert('เกิดข้อผิดพลาด: ' + result.message);
+                        alert('เกิดข้อผิดพลาด: ' + data.message);
                     }
                 } catch (error) {
-                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+                    alert('การเชื่อมต่อล้มเหลว: ' + error.message);
                 }
                 hideLoading();
             };
@@ -368,44 +370,30 @@
             }
         }
 
-        // ระบบล็อกอินแก้ไขการจัดการ Error กรณีโดนบล็อก CORS ให้แจ้งเตือนสาเหตุชัดเจน
         async function showAdminLogin() {
             const password = prompt('กรุณากรอกรหัสแอดมิน');
             if (!password) return;
             
             showLoading();
             try {
-                const response = await fetch(API_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ action: 'adminLogin', password: password.trim() }) 
-                });
+                const data = await callAPI({ action: 'adminLogin', password: password.trim() });
                 
-                const textResponse = await response.text();
-                hideLoading();
-                
-                try {
-                    const data = JSON.parse(textResponse);
+                if (data.status === 'success') {
+                    document.getElementById('set-banner').value = globalSettings.banner || '';
+                    document.getElementById('set-bank').value = globalSettings.bankQr || '';
+                    document.getElementById('set-true').value = globalSettings.trueQr || '';
+                    document.getElementById('set-email').value = globalSettings.adminEmail || '';
+                    document.getElementById('set-line').value = globalSettings.line || '';
+                    document.getElementById('set-fb').value = globalSettings.fb || '';
                     
-                    if (data.status === 'success') {
-                        document.getElementById('set-banner').value = globalSettings.banner || '';
-                        document.getElementById('set-bank').value = globalSettings.bankQr || '';
-                        document.getElementById('set-true').value = globalSettings.trueQr || '';
-                        document.getElementById('set-email').value = globalSettings.adminEmail || '';
-                        document.getElementById('set-line').value = globalSettings.line || '';
-                        document.getElementById('set-fb').value = globalSettings.fb || '';
-                        
-                        document.getElementById('adminPanel').classList.remove('hidden');
-                    } else {
-                        alert('รหัสผ่านไม่ถูกต้องค่ะ');
-                    }
-                } catch(parseError) {
-                    alert('เซิร์ฟเวอร์ส่งข้อมูลกลับมาผิดปกติ โปรดเช็คลิงก์ API URL หรือสิทธิ์การ Deploy ให้เป็น Anyone \n\nข้อมูลที่ได้รับ: ' + textResponse.substring(0, 50) + '...');
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                } else {
+                    alert('รหัสผ่านไม่ถูกต้องค่ะ');
                 }
-                
             } catch(error) {
-                hideLoading();
-                alert('การเชื่อมต่อล้มเหลว: ' + error.message + '\n\nโปรดตรวจสอบว่าลิงก์ API_URL ถูกต้องหรือไม่ และสิทธิ์การ Deploy เป็น "Anyone" หรือไม่');
+                alert('การเชื่อมต่อล้มเหลว: ' + error.message);
             }
+            hideLoading();
         }
 
         async function saveSettings() {
@@ -420,14 +408,11 @@
             };
             
             try {
-                await fetch(API_URL, { 
-                    method: 'POST', 
-                    body: JSON.stringify({ action: 'updateSettings', settings: newSettings }) 
-                });
+                await callAPI({ action: 'updateSettings', settings: newSettings });
                 alert('บันทึกการตั้งค่าเรียบร้อยแล้วค่ะ');
                 location.reload();
             } catch(error) {
-                alert('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+                alert('บันทึกไม่สำเร็จ: ' + error.message);
                 hideLoading();
             }
         }
