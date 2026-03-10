@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <title>BellbyPhone - ระบบส่งยอดผ่อนโทรศัพท์</title>
+    <link rel="icon" type="image/jpeg" href="https://img2.pic.in.th/att.MmrKvFKgemFA7J2UPcHwOBCl5kFiFhCZtkK3XUjPQq0.jpeg">
+    <meta property="og:title" content="BellbyPhone - ระบบส่งยอดผ่อนโทรศัพท์">
+    <meta property="og:description" content="ตรวจสอบยอดผ่อนชำระ และส่งสลิปโอนเงินร้าน BellbyPhone สะดวก รวดเร็ว">
+    <meta property="og:image" content="https://img2.pic.in.th/att.MmrKvFKgemFA7J2UPcHwOBCl5kFiFhCZtkK3XUjPQq0.jpeg">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="BellbyPhone - ระบบส่งยอดผ่อนโทรศัพท์">
+    <meta name="twitter:description" content="ตรวจสอบยอดผ่อนชำระ และส่งสลิปโอนเงินร้าน BellbyPhone">
+    <meta name="twitter:image" content="https://img2.pic.in.th/att.MmrKvFKgemFA7J2UPcHwOBCl5kFiFhCZtkK3XUjPQq0.jpeg">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    
+    <style>
+        body { font-family: 'Prompt', sans-serif; background-color: #fdf2f8; color: #4b5563; }
+        .text-pastel { color: #f472b6; }
+        .bg-pastel { background-color: #fbcfe8; }
+        .btn-pastel { background-color: #f472b6; color: white; transition: all 0.3s; }
+        .btn-pastel:hover { background-color: #ec4899; transform: translateY(-2px); box-shadow: 0 4px 6px rgba(244, 114, 182, 0.3); }
+        .card-shadow { box-shadow: 0 10px 25px -5px rgba(249, 168, 212, 0.2); border: 1px solid #fce7f3; }
+        .input-box { width: 100%; padding: 0.75rem 1rem; border-radius: 0.75rem; border: 2px solid #fce7f3; background: white; transition: all 0.3s; }
+        .input-box:focus { outline: none; border-color: #f472b6; }
+        
+        /* หน้าจอโหลดข้อมูล */
+        #loading {
+            position: fixed; inset: 0; background: rgba(255,255,255,0.85); z-index: 9999;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .spinner {
+            border: 4px solid #fce7f3; border-top: 4px solid #f472b6;
+            border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite;
+        }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col items-center py-8 px-4 relative">
+
+    <div id="loading" class="hidden">
+        <div class="spinner mb-4"></div>
+        <p class="text-pastel font-medium"><i class="fa-solid fa-spinner mr-2"></i>กำลังประมวลผล...</p>
+    </div>
+
+    <div class="max-w-md w-full">
+        <div class="flex justify-between items-center mb-6">
+            <div class="flex items-center space-x-3">
+                <img src="https://img2.pic.in.th/att.MmrKvFKgemFA7J2UPcHwOBCl5kFiFhCZtkK3XUjPQq0.jpeg" alt="BellbyPhone Logo" class="w-14 h-14 rounded-full border-2 border-pink-200 object-cover shadow-sm">
+                <h1 class="text-xl font-bold text-pastel">BellbyPhone</h1>
+            </div>
+            <button onclick="showAdminLogin()" class="text-gray-400 hover:text-pastel transition-colors">
+                <i class="fa-solid fa-gear text-xl"></i>
+            </button>
+        </div>
+
+        <div id="banner-container" class="mb-6 hidden">
+            <img id="main-banner" src="" alt="Banner" class="w-full rounded-2xl shadow-sm border border-pink-100 object-cover">
+        </div>
+
+        <div id="search-section" class="bg-white rounded-3xl p-6 card-shadow mb-6">
+            <h2 class="text-center text-gray-600 mb-5 font-medium"><i class="fa-solid fa-magnifying-glass mr-2 text-pastel"></i>ตรวจสอบยอดผ่อนชำระ</h2>
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-500 mb-1 ml-1"><i class="fa-solid fa-id-card mr-1"></i>รหัสบัตรประชาชน</label>
+                    <input type="text" id="searchId" placeholder="กรอกรหัสบัตรประชาชน 13 หลัก" class="input-box text-center tracking-widest">
+                </div>
+                <button onclick="searchCustomer()" class="w-full btn-pastel py-3 rounded-xl font-medium">
+                    ดึงข้อมูล
+                </button>
+            </div>
+        </div>
+
+        <div id="result-section" class="hidden space-y-4">
+            <div class="bg-white rounded-3xl p-6 card-shadow">
+                <div class="flex items-center space-x-3 border-b border-pink-50 pb-3 mb-4">
+                    <div class="bg-pink-50 text-pastel p-3 rounded-lg"><i class="fa-solid fa-user"></i></div>
+                    <div>
+                        <p class="text-xs text-gray-400">ชื่อลูกค้า</p>
+                        <p id="res-name" class="font-semibold text-gray-700"></p>
+                    </div>
+                </div>
+                
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between items-center bg-gray-50 p-3 rounded-xl">
+                        <span class="text-gray-500"><i class="fa-solid fa-mobile-screen mr-2"></i>สินค้า</span>
+                        <span id="res-product" class="font-medium text-pastel text-right"></span>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-50 p-3 rounded-xl">
+                            <p class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-tag mr-1"></i>ประเภท</p>
+                            <p id="res-type" class="font-medium text-gray-700"></p>
+                        </div>
+                        <div class="bg-gray-50 p-3 rounded-xl">
+                            <p class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-clock-rotate-left mr-1"></i>ระยะเวลา</p>
+                            <p class="font-medium text-gray-700"><span id="res-cycles"></span> รอบ</p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="bg-gray-50 p-3 rounded-xl">
+                            <p class="text-xs text-gray-400 mb-1"><i class="fa-solid fa-coins mr-1"></i>ยอดต่อรอบ</p>
+                            <p class="font-medium text-gray-700"><span id="res-amount"></span> ฿</p>
+                        </div>
+                        <div class="bg-pink-50 p-3 rounded-xl border border-pink-100">
+                            <p class="text-xs text-gray-500 mb-1"><i class="fa-solid fa-piggy-bank mr-1"></i>ผ่อนไปแล้ว</p>
+                            <p class="font-bold text-pastel"><span id="res-paid"></span> ฿</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <button onclick="openPaymentModal()" class="w-full btn-pastel py-4 rounded-xl font-semibold text-lg flex justify-center items-center shadow-md">
+                <i class="fa-solid fa-paper-plane mr-2"></i> ยืนยันการส่งยอด
+            </button>
+            <button onclick="resetView()" class="w-full text-center text-gray-400 hover:text-pastel text-sm py-2">
+                <i class="fa-solid fa-rotate-left mr-1"></i> ค้นหาใหม่
+            </button>
+        </div>
+
+        <div class="mt-8 flex justify-center space-x-6 text-2xl text-pink-300">
+            <a id="link-line" href="#" target="_blank" class="hover:text-pastel transition-colors"><i class="fa-brands fa-line"></i></a>
+            <a id="link-fb" href="#" target="_blank" class="hover:text-pastel transition-colors"><i class="fa-brands fa-facebook"></i></a>
+        </div>
+    </div>
+
+    <div id="payModal" class="fixed inset-0 bg-gray-900 bg-opacity-40 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+            <button onclick="closeModal('payModal')" class="absolute right-5 top-5 text-gray-400 hover:text-gray-600">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+            
+            <h2 class="text-center font-semibold text-gray-700 text-lg mb-4"><i class="fa-solid fa-money-check-dollar text-pastel mr-2"></i>รายละเอียดการโอน</h2>
+            
+            <div class="space-y-4">
+                <div class="bg-pink-50 border border-pink-100 p-4 rounded-2xl text-center">
+                    <p class="text-sm text-gray-500 mb-1" id="pay-type-text"></p>
+                    <p class="text-3xl font-bold text-pastel"><span id="pay-amount-text"></span> ฿</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div class="text-center">
+                        <p class="text-xs text-gray-400 mb-2"><i class="fa-solid fa-building-columns mr-1"></i>ธนาคาร</p>
+                        <img id="img-bank" src="" class="w-full rounded-xl border-2 border-gray-100 object-cover shadow-sm bg-gray-50" alt="Bank QR" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'><rect width=\'100\' height=\'100\' fill=\'%23f3f4f6\'/><text x=\'50\' y=\'50\' font-family=\'sans-serif\' font-size=\'12\' text-anchor=\'middle\' fill=\'%239ca3af\'>No Image</text></svg>'">
+                    </div>
+                    <div class="text-center">
+                        <p class="text-xs text-gray-400 mb-2"><i class="fa-solid fa-wallet mr-1"></i>TrueMoney</p>
+                        <img id="img-true" src="" class="w-full rounded-xl border-2 border-gray-100 object-cover shadow-sm bg-gray-50" alt="True QR" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'100\'><rect width=\'100\' height=\'100\' fill=\'%23f3f4f6\'/><text x=\'50\' y=\'50\' font-family=\'sans-serif\' font-size=\'12\' text-anchor=\'middle\' fill=\'%239ca3af\'>No Image</text></svg>'">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3 mt-4">
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 ml-1"><i class="fa-regular fa-calendar mr-1"></i>วันที่โอน</label>
+                        <input type="date" id="input-date" class="input-box text-sm">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-gray-500 mb-1 ml-1"><i class="fa-regular fa-clock mr-1"></i>เวลา</label>
+                        <input type="time" id="input-time" class="input-box text-sm">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 ml-1"><i class="fa-solid fa-coins mr-1"></i>ยอดโอนจริง</label>
+                    <input type="number" id="input-actual-amount" class="input-box text-sm">
+                </div>
+
+                <div>
+                    <label class="block text-xs text-gray-500 mb-1 ml-1"><i class="fa-regular fa-image mr-1"></i>หลักฐานการโอน</label>
+                    <label class="block w-full text-center cursor-pointer bg-white text-gray-500 py-3 rounded-xl border-2 border-dashed border-pink-200 hover:bg-pink-50 transition-colors">
+                        <i class="fa-solid fa-cloud-arrow-up mr-2 text-pastel"></i> <span id="file-label" class="text-sm truncate inline-block max-w-[200px] align-bottom">กดเพื่อแนบสลิป</span>
+                        <input type="file" id="input-file" accept="image/*" class="hidden" onchange="updateFileName()">
+                    </label>
+                </div>
+
+                <button onclick="confirmPayment()" class="w-full btn-pastel py-3 rounded-xl font-medium mt-4">
+                    <i class="fa-solid fa-check-circle mr-2"></i> ยืนยันข้อมูล
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div id="adminPanel" class="fixed inset-0 bg-gray-50 hidden z-[100] p-6 overflow-y-auto">
+        <div class="max-w-md mx-auto bg-white rounded-3xl p-6 card-shadow">
+            <div class="flex justify-between items-center mb-6 border-b pb-4">
+                <h1 class="text-xl font-semibold text-gray-700"><i class="fa-solid fa-shield-halved text-pastel mr-2"></i>ตั้งค่าระบบร้าน</h1>
+                <button onclick="closeModal('adminPanel')" class="text-gray-400 hover:text-red-400"><i class="fa-solid fa-xmark text-2xl"></i></button>
+            </div>
+            <div class="space-y-4">
+                <div><label class="block text-xs font-medium text-gray-500 mb-1">ลิงก์รูปแบนเนอร์ (หน้าแรก)</label><input type="text" id="set-banner" class="input-box text-sm"></div>
+                <div><label class="block text-xs font-medium text-gray-500 mb-1">ลิงก์ QR Code ธนาคาร (ตอนโอนเงิน)</label><input type="text" id="set-bank" class="input-box text-sm"></div>
+                <div><label class="block text-xs font-medium text-gray-500 mb-1">ลิงก์ QR Code TrueMoney (ตอนโอนเงิน)</label><input type="text" id="set-true" class="input-box text-sm"></div>
+                <div><label class="block text-xs font-medium text-gray-500 mb-1">Email รับแจ้งเตือน (เมื่อลูกค้าโอนเงิน)</label><input type="text" id="set-email" class="input-box text-sm"></div>
+                <div><label class="block text-xs font-medium text-gray-500 mb-1">ลิงก์ Line</label><input type="text" id="set-line" class="input-box text-sm"></div>
+                <div><label class="block text-xs font-medium text-gray-500 mb-1">ลิงก์ Facebook</label><input type="text" id="set-fb" class="input-box text-sm"></div>
+                
+                <button onclick="saveSettings()" class="w-full btn-pastel py-3 rounded-xl font-medium mt-6"><i class="fa-solid fa-floppy-disk mr-2"></i>บันทึกการตั้งค่า</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // นำ URL Web App ของคุณมาใส่ที่นี่
+        // ==========================================
+        const API_URL = 'https://script.google.com/macros/s/AKfycbxTaV4xQdC2cXj7hyJPXx0oN3gaFjVr9_Rnw3fmvnFuXMP2vb_O9g8aR9NMtHGocyUEeg/exec';
+        
+        let currentData = null;
+        let globalSettings = {};
+
+        // โหลดข้อมูลการตั้งค่าตอนเปิดเว็บทันที
+        window.onload = loadSettings;
+
+        function showLoading() { document.getElementById('loading').classList.remove('hidden'); }
+        function hideLoading() { document.getElementById('loading').classList.add('hidden'); }
+
+        // ฟังก์ชันดึงรูปแบนเนอร์ / QR / โซเชียล จาก Sheet
+        async function loadSettings() {
+            try {
+                const response = await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'getSettings' }) 
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    globalSettings = data.settings;
+                    
+                    // อัปเดต UI หน้าเว็บตามการตั้งค่าที่ดึงมา
+                    if(data.settings.banner) {
+                        document.getElementById('main-banner').src = data.settings.banner;
+                        document.getElementById('banner-container').classList.remove('hidden');
+                    }
+                    if(data.settings.bankQr) document.getElementById('img-bank').src = data.settings.bankQr;
+                    if(data.settings.trueQr) document.getElementById('img-true').src = data.settings.trueQr;
+                    if(data.settings.line) document.getElementById('link-line').href = data.settings.line;
+                    if(data.settings.fb) document.getElementById('link-fb').href = data.settings.fb;
+                }
+            } catch(error) { 
+                console.error("ไม่สามารถโหลดการตั้งค่าได้: ", error); 
+            }
+        }
+
+        // ฟังก์ชันค้นหาประวัติลูกค้า
+        async function searchCustomer() {
+            const idCard = document.getElementById('searchId').value.trim();
+            if(!idCard) return alert('กรุณากรอกรหัสบัตรประชาชน 13 หลัก');
+            
+            showLoading();
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({ action: 'searchCustomer', idCard: idCard })
+                });
+                const data = await response.json();
+                
+                if(data.status === 'success') {
+                    currentData = data.data;
+                    document.getElementById('res-name').innerText = currentData.name;
+                    document.getElementById('res-product').innerText = currentData.product;
+                    document.getElementById('res-type').innerText = currentData.type;
+                    document.getElementById('res-cycles').innerText = currentData.totalCycles;
+                    document.getElementById('res-amount').innerText = currentData.cycleAmount;
+                    document.getElementById('res-paid').innerText = currentData.totalPaid;
+                    
+                    document.getElementById('result-section').classList.remove('hidden');
+                    document.getElementById('search-section').classList.add('hidden');
+                } else {
+                    alert(data.message);
+                }
+            } catch(error) {
+                alert('เกิดข้อผิดพลาดในการเชื่อมต่อกับเซิร์ฟเวอร์');
+            }
+            hideLoading();
+        }
+
+        // รีเซ็ตหน้าจอกลับไปหน้าค้นหา
+        function resetView() {
+            currentData = null;
+            document.getElementById('searchId').value = '';
+            document.getElementById('result-section').classList.add('hidden');
+            document.getElementById('search-section').classList.remove('hidden');
+        }
+
+        // เปิดหน้าต่างสำหรับแนบสลิป
+        function openPaymentModal() {
+            // เช็คเงื่อนไข: หากไม่มีประวัติโอนค่าดาวน์ บังคับเป็น "ค่าดาวน์"
+            const isFirstTime = !currentData.isDownPaid;
+            const payType = isFirstTime ? 'ชำระค่าดาวน์ (ครั้งแรก)' : 'ชำระค่างวด';
+            const payAmount = isFirstTime ? currentData.downAmount : currentData.cycleAmount;
+            
+            document.getElementById('pay-type-text').innerText = payType;
+            document.getElementById('pay-amount-text').innerText = payAmount;
+            
+            const actualAmountInput = document.getElementById('input-actual-amount');
+            actualAmountInput.value = payAmount;
+            
+            if(isFirstTime) {
+                // ครั้งแรก ล็อคยอด ห้ามจ่ายเกินหรือขาด
+                actualAmountInput.readOnly = true; 
+                actualAmountInput.classList.add('bg-gray-100');
+            } else {
+                // ครั้งต่อไป จ่ายล่วงหน้าได้ แก้ไขตัวเลขได้
+                actualAmountInput.readOnly = false; 
+                actualAmountInput.classList.remove('bg-gray-100');
+            }
+
+            // ใส่วันที่และเวลาปัจจุบันอัตโนมัติ
+            const now = new Date();
+            document.getElementById('input-date').value = now.toISOString().split('T')[0];
+            document.getElementById('input-time').value = now.toTimeString().substring(0,5);
+            
+            // ล้างข้อมูลไฟล์เดิม
+            document.getElementById('input-file').value = '';
+            document.getElementById('file-label').innerText = 'กดเพื่อแนบสลิป';
+
+            document.getElementById('payModal').classList.remove('hidden');
+        }
+
+        // ยืนยันการโอนเงินและอัปโหลดข้อมูล
+        async function confirmPayment() {
+            const fileInput = document.getElementById('input-file');
+            const date = document.getElementById('input-date').value;
+            const time = document.getElementById('input-time').value;
+            const actualAmount = document.getElementById('input-actual-amount').value;
+
+            if(!fileInput.files[0] || !date || !time || !actualAmount) {
+                return alert('กรุณากรอกข้อมูลและแนบสลิปให้ครบถ้วน');
+            }
+
+            showLoading();
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = async function() {
+                const base64Data = reader.result;
+                const isFirstTime = !currentData.isDownPaid;
+                
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            action: 'submitPayment',
+                            idCard: currentData.idCard,
+                            name: currentData.name,
+                            amount: actualAmount,
+                            type: isFirstTime ? 'ค่าดาวน์' : 'ค่างวด',
+                            date: date,
+                            time: time,
+                            fileData: base64Data,
+                            fileName: currentData.idCard + "_" + Date.now() + ".jpg"
+                        })
+                    });
+                    const result = await response.json();
+                    
+                    if(result.status === 'success') {
+                        alert('ส่งยอดสำเร็จแล้วค่ะ ระบบกำลังแจ้งเตือนไปยังแอดมิน');
+                        closeModal('payModal');
+                        resetView();
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + result.message);
+                    }
+                } catch (error) {
+                    alert('เกิดข้อผิดพลาดในการเชื่อมต่อ กรุณาลองใหม่อีกครั้ง');
+                }
+                hideLoading();
+            };
+            reader.readAsDataURL(file); // แปลงไฟล์ภาพเป็น Base64
+        }
+
+        // แสดงชื่อไฟล์เมื่อกดเลือกรูปสลิป
+        function updateFileName() {
+            const fileInput = document.getElementById('input-file');
+            if (fileInput.files.length > 0) {
+                document.getElementById('file-label').innerText = fileInput.files[0].name;
+            }
+        }
+
+        // ล็อกอินเข้าระบบหลังบ้านของแอดมิน
+        async function showAdminLogin() {
+            const password = prompt('กรุณากรอกรหัสแอดมิน');
+            if (!password) return;
+            
+            showLoading();
+            try {
+                const response = await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'adminLogin', password: password }) 
+                });
+                const data = await response.json();
+                hideLoading();
+                
+                if (data.status === 'success') {
+                    // กรอกข้อมูลเดิมลงในช่องให้แอดมินแก้ไขง่ายขึ้น
+                    document.getElementById('set-banner').value = globalSettings.banner || '';
+                    document.getElementById('set-bank').value = globalSettings.bankQr || '';
+                    document.getElementById('set-true').value = globalSettings.trueQr || '';
+                    document.getElementById('set-email').value = globalSettings.adminEmail || '';
+                    document.getElementById('set-line').value = globalSettings.line || '';
+                    document.getElementById('set-fb').value = globalSettings.fb || '';
+                    
+                    document.getElementById('adminPanel').classList.remove('hidden');
+                } else {
+                    alert('รหัสผ่านไม่ถูกต้องค่ะ');
+                }
+            } catch(error) {
+                hideLoading();
+                alert('การเชื่อมต่อล้มเหลว');
+            }
+        }
+
+        // บันทึกการตั้งค่าลง Google Sheet
+        async function saveSettings() {
+            showLoading();
+            const newSettings = {
+                banner: document.getElementById('set-banner').value,
+                bankQr: document.getElementById('set-bank').value,
+                trueQr: document.getElementById('set-true').value,
+                adminEmail: document.getElementById('set-email').value,
+                line: document.getElementById('set-line').value,
+                fb: document.getElementById('set-fb').value
+            };
+            
+            try {
+                await fetch(API_URL, { 
+                    method: 'POST', 
+                    body: JSON.stringify({ action: 'updateSettings', settings: newSettings }) 
+                });
+                alert('บันทึกการตั้งค่าเรียบร้อยแล้วค่ะ');
+                location.reload(); // รีเฟรชหน้าเว็บเพื่อให้การตั้งค่าใหม่ทำงาน
+            } catch(error) {
+                alert('บันทึกไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+                hideLoading();
+            }
+        }
+
+        // ฟังก์ชันปิด Modal ทั่วไป
+        function closeModal(modalId) { 
+            document.getElementById(modalId).classList.add('hidden'); 
+        }
+    </script>
+</body>
+</html>
